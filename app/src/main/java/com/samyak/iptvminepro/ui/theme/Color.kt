@@ -58,4 +58,22 @@ val MaterialBlackCardBorder = Color(0xFF242424)
 val MaterialBlackOutline = Color(0xFF2C2C2C)
 val MaterialBlackDivider = Color(0xFF1E1E1E)
 val MaterialBlackOnSurface = Color(0xFFF3F3F3)
-val MaterialBlackOnSurfaceVariant = Color(0xFFA5A5A5)
+val MaterialBlackOnSurfaceVariant = Color(0xFFA5A5A5)
+
+// ---------------------------------------------------------------------------
+// Midnight cinema palette (redesign)
+// ---------------------------------------------------------------------------
+val Midnight = Color(0xFF0A0A1F)          // app background
+val MidnightDeep = Color(0xFF05050F)      // AMOLED variant background
+val Ink = Color(0xFF14142B)               // cards / surfaces
+val InkHigh = Color(0xFF1E1E3D)           // raised surfaces, selected rows
+val InkStroke = Color(0x1FFFFFFF)         // 12% white hairline
+val Amber = Color(0xFFFFB627)             // primary accent (selected pill, focus)
+val OnAmber = Color(0xFF1A1200)
+val Violet = Color(0xFF8B5CF6)            // secondary glow
+val VioletDeep = Color(0xFF3B1D7A)
+val Teal = Color(0xFF22C7B8)              // rating / info badges
+val TextHigh = Color(0xFFF5F5FA)
+val TextMuted = Color(0xFF9A9BB8)
+val LiveRed = Color(0xFFFF4D6A)
+val Color0F0F1A = Color(0xFF0F0F1A)

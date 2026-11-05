@@ -2,6 +2,7 @@ package com.samyak.iptvminepro.ui.screens.home
 
 import android.net.Uri
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -9,32 +10,43 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.PlayCircleFilled
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import coil.compose.AsyncImage
 import com.samyak.iptvminepro.R
 import com.samyak.iptvminepro.model.Channel
 import com.samyak.iptvminepro.model.VegaPost
 import com.samyak.iptvminepro.model.VegaCatalog
-import com.samyak.iptvminepro.model.VegaProvider
-import com.samyak.iptvminepro.model.Provider
 import com.samyak.iptvminepro.model.ProviderType
 import com.samyak.iptvminepro.provider.ChannelsProvider
 import com.samyak.iptvminepro.provider.ExtensionRepository
 import com.samyak.iptvminepro.ui.components.ChannelCard
 import com.samyak.iptvminepro.ui.components.MovieCard
+import com.samyak.iptvminepro.ui.components.rememberPosterRequest
+import com.samyak.iptvminepro.ui.theme.Ink
+import com.samyak.iptvminepro.ui.theme.InkStroke
+import com.samyak.iptvminepro.ui.theme.Midnight
+import com.samyak.iptvminepro.ui.theme.VioletDeep
 import com.samyak.iptvminepro.ui.viewmodel.HomeViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -75,6 +87,34 @@ fun HomeScreen(
         homeViewModel.loadMoviesIfNeeded(installedExtensionsState)
     }
 
+    val openMovie: (VegaPost) -> Unit = { movie ->
+        val provider = selectedProvider
+        val scraper = selectedScraper
+        if (provider != null && scraper != null) {
+            val encodedLink = Uri.encode(movie.link)
+            val encodedProviderUrl = Uri.encode(provider.url)
+            val scraperValue = scraper.value
+            navController.navigate("movie_detail?link=$encodedLink&providerUrl=$encodedProviderUrl&scraperValue=$scraperValue")
+        }
+    }
+
+    val openCategory: (VegaCatalog) -> Unit = { catalog ->
+        val provider = selectedProvider
+        val scraper = selectedScraper
+        if (provider != null && scraper != null) {
+            val encodedTitle = Uri.encode(catalog.title)
+            val encodedFilter = Uri.encode(catalog.filter)
+            val encodedProviderUrl = Uri.encode(provider.url)
+            val scraperValue = scraper.value
+            navController.navigate("category_movies?categoryName=$encodedTitle&categoryFilter=$encodedFilter&providerUrl=$encodedProviderUrl&scraperValue=$scraperValue")
+        }
+    }
+
+    // The first poster of the first non-empty row becomes the featured hero card.
+    val hero = remember(moviesByCategory) {
+        moviesByCategory.entries.firstOrNull { it.value.isNotEmpty() }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -89,10 +129,21 @@ fun HomeScreen(
                 val chunkedChannels = remember(channels) { channels.chunked(2) }
 
                 LazyColumn(
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 24.dp),
+                    verticalArrangement = Arrangement.spacedBy(20.dp),
                     modifier = Modifier.fillMaxSize()
                 ) {
+                    if (hero != null) {
+                        item {
+                            HeroCard(
+                                movie = hero.value.first(),
+                                label = hero.key.title,
+                                onWatch = { openMovie(hero.value.first()) },
+                                onSeeAll = { openCategory(hero.key) }
+                            )
+                        }
+                    }
+
                     if (videoProviders.isNotEmpty()) {
                         item {
                             MyVideosCard(
@@ -105,38 +156,11 @@ fun HomeScreen(
                     if (moviesByCategory.isNotEmpty()) {
                         moviesByCategory.forEach { (catalog, movies) ->
                             item {
-                                Column(modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)) {
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .clickable {
-                                                val provider = selectedProvider
-                                                val scraper = selectedScraper
-                                                if (provider != null && scraper != null) {
-                                                    val encodedTitle = Uri.encode(catalog.title)
-                                                    val encodedFilter = Uri.encode(catalog.filter)
-                                                    val encodedProviderUrl = Uri.encode(provider.url)
-                                                    val scraperValue = scraper.value
-                                                    navController.navigate("category_movies?categoryName=$encodedTitle&categoryFilter=$encodedFilter&providerUrl=$encodedProviderUrl&scraperValue=$scraperValue")
-                                                }
-                                            }
-                                            .padding(bottom = 12.dp),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.SpaceBetween
-                                    ) {
-                                        Text(
-                                            text = catalog.title,
-                                            style = MaterialTheme.typography.titleMedium,
-                                            fontWeight = FontWeight.Bold,
-                                            color = MaterialTheme.colorScheme.onBackground
-                                        )
-                                        Icon(
-                                            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                                            contentDescription = "View All",
-                                            tint = MaterialTheme.colorScheme.primary,
-                                            modifier = Modifier.size(20.dp)
-                                        )
-                                    }
+                                Column(modifier = Modifier.fillMaxWidth()) {
+                                    SectionHeader(
+                                        title = catalog.title,
+                                        onSeeAll = { openCategory(catalog) }
+                                    )
                                     LazyRow(
                                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                                         modifier = Modifier.fillMaxWidth()
@@ -144,17 +168,8 @@ fun HomeScreen(
                                         items(movies) { movie ->
                                             MovieCard(
                                                 movie = movie,
-                                                onClick = {
-                                                    val provider = selectedProvider
-                                                    val scraper = selectedScraper
-                                                    if (provider != null && scraper != null) {
-                                                        val encodedLink = Uri.encode(movie.link)
-                                                        val encodedProviderUrl = Uri.encode(provider.url)
-                                                        val scraperValue = scraper.value
-                                                        navController.navigate("movie_detail?link=$encodedLink&providerUrl=$encodedProviderUrl&scraperValue=$scraperValue")
-                                                    }
-                                                },
-                                                modifier = Modifier.width(130.dp)
+                                                onClick = { openMovie(movie) },
+                                                modifier = Modifier.width(132.dp)
                                             )
                                         }
                                     }
@@ -165,13 +180,7 @@ fun HomeScreen(
 
                     if (channels.isNotEmpty()) {
                         item {
-                            Text(
-                                text = "Live TV Channels",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onBackground,
-                                modifier = Modifier.padding(top = 8.dp, bottom = 12.dp)
-                            )
+                            SectionHeader(title = "Live TV Channels", onSeeAll = null)
                         }
                         items(chunkedChannels) { rowChannels ->
                             Row(
@@ -205,7 +214,7 @@ fun HomeScreen(
                                 )
                                 Text(
                                     text = "No content available",
-                                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     textAlign = androidx.compose.ui.text.style.TextAlign.Center
                                 )
                             }
@@ -218,56 +227,194 @@ fun HomeScreen(
             if ((isLoading && channels.isNotEmpty()) || (isMoviesLoading && moviesByCategory.isNotEmpty())) {
                 LinearProgressIndicator(
                     modifier = Modifier.fillMaxWidth().align(Alignment.TopCenter),
-                    color = MaterialTheme.colorScheme.primary
+                    color = MaterialTheme.colorScheme.primary,
+                    trackColor = Color.Transparent
                 )
             }
         }
     }
 }
 
+@Composable
+private fun SectionHeader(title: String, onSeeAll: (() -> Unit)?) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleLarge,
+            color = MaterialTheme.colorScheme.onBackground,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f, fill = false)
+        )
+        if (onSeeAll != null) {
+            Text(
+                text = "See all",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textDecoration = TextDecoration.Underline,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .clickable(onClick = onSeeAll)
+                    .padding(horizontal = 4.dp, vertical = 2.dp)
+            )
+        }
+    }
+}
+
+/** Large featured poster with a white "Watch now" pill and a frosted secondary action. */
+@Composable
+private fun HeroCard(
+    movie: VegaPost,
+    label: String,
+    onWatch: () -> Unit,
+    onSeeAll: () -> Unit
+) {
+    val shape = RoundedCornerShape(28.dp)
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .aspectRatio(0.85f)
+            .clip(shape)
+            .background(Ink)
+            .border(1.dp, InkStroke, shape)
+            .clickable(onClick = onWatch)
+    ) {
+        AsyncImage(
+            model = rememberPosterRequest(movie.image),
+            contentDescription = movie.title,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.fillMaxSize()
+        )
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        0.30f to Color.Transparent,
+                        0.70f to Midnight.copy(alpha = 0.70f),
+                        1.00f to Midnight.copy(alpha = 0.97f)
+                    )
+                )
+        )
+        Column(
+            modifier = Modifier
+                .align(Alignment.BottomStart)
+                .fillMaxWidth()
+                .padding(20.dp)
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelMedium,
+                color = Color.White,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier
+                    .clip(CircleShape)
+                    .background(Color.White.copy(alpha = 0.16f))
+                    .padding(horizontal = 12.dp, vertical = 5.dp)
+            )
+            Spacer(modifier = Modifier.height(10.dp))
+            Text(
+                text = movie.title,
+                style = MaterialTheme.typography.headlineSmall,
+                color = Color.White,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    modifier = Modifier
+                        .clip(CircleShape)
+                        .background(Color.White)
+                        .clickable(onClick = onWatch)
+                        .padding(start = 14.dp, end = 20.dp, top = 12.dp, bottom = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.PlayArrow,
+                        contentDescription = null,
+                        tint = Color(0xFF0A0A1F),
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = "Watch now",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF0A0A1F)
+                    )
+                }
+                Text(
+                    text = "See all",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color.White,
+                    modifier = Modifier
+                        .clip(CircleShape)
+                        .background(Color.White.copy(alpha = 0.16f))
+                        .clickable(onClick = onSeeAll)
+                        .padding(horizontal = 20.dp, vertical = 14.dp)
+                )
+            }
+        }
+    }
+}
 
 @Composable
 private fun MyVideosCard(count: Int, onClick: () -> Unit) {
-    Card(
+    val shape = RoundedCornerShape(24.dp)
+    Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF00695C)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
-        shape = RoundedCornerShape(14.dp)
+            .clip(shape)
+            .background(Brush.linearGradient(listOf(VioletDeep, Ink)))
+            .border(1.dp, InkStroke, shape)
+            .clickable(onClick = onClick)
+            .padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(
+        Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .size(48.dp)
+                .clip(CircleShape)
+                .background(Color.White.copy(alpha = 0.12f)),
+            contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = Icons.Filled.PlayCircleFilled,
                 contentDescription = null,
                 tint = Color.White,
-                modifier = Modifier.size(40.dp)
-            )
-            Spacer(modifier = Modifier.width(14.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = "My Videos",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White
-                )
-                Text(
-                    text = if (count == 1) "1 video" else "$count videos",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Color.White.copy(alpha = 0.85f)
-                )
-            }
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                contentDescription = "Open",
-                tint = Color.White,
-                modifier = Modifier.size(22.dp)
+                modifier = Modifier.size(28.dp)
             )
         }
+        Spacer(modifier = Modifier.width(14.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = "My Videos",
+                style = MaterialTheme.typography.titleMedium,
+                color = Color.White
+            )
+            Text(
+                text = if (count == 1) "1 video" else "$count videos",
+                style = MaterialTheme.typography.bodySmall,
+                color = Color.White.copy(alpha = 0.7f)
+            )
+        }
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+            contentDescription = "Open",
+            tint = Color.White,
+            modifier = Modifier.size(22.dp)
+        )
     }
 }

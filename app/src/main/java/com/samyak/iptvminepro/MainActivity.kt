@@ -18,6 +18,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.animateContentSize
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.Spring
 import androidx.compose.ui.draw.scale
@@ -299,7 +304,7 @@ fun MainApp() {
             val tapTargetScope = this
             Scaffold(
                 modifier = Modifier.fillMaxSize(),
-                containerColor = Color.Transparent,
+                containerColor = MaterialTheme.colorScheme.background,
         bottomBar = {
             val navBackStackEntry by navController.currentBackStackEntryAsState()
             val currentRoute = navBackStackEntry?.destination?.route
@@ -322,44 +327,37 @@ fun MainApp() {
                 currentRoute != Screen.VideoList.route &&
                 currentRoute != Screen.DnsSettings.route
             ) {
-                val isBlackThemeActive = com.samyak.iptvminepro.ui.theme.LocalIsBlackTheme.current
+                val currentDestination = navBackStackEntry?.destination
+                // Floating pill navigation: the selected tab expands into a white pill with its label.
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(if (isBlackThemeActive) Color.Black else Color.White)
+                        .background(MaterialTheme.colorScheme.background)
+                        .navigationBarsPadding()
+                        .padding(horizontal = 24.dp, vertical = 10.dp),
+                    contentAlignment = Alignment.Center
                 ) {
-                    // Thin top border/divider
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(1.dp)
-                            .background(if (isBlackThemeActive) Color(0xFF1E1E1E) else Color(0xFFE5E7EB))
-                    )
-
                     Row(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .navigationBarsPadding()
-                            .height(72.dp),
-                        horizontalArrangement = Arrangement.SpaceAround,
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                            .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
+                            .padding(6.dp),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        val currentDestination = navBackStackEntry?.destination
                         items.forEach { screen ->
                             val selected = currentDestination?.hierarchy?.any { it.route == screen.route } == true
-
-                            val scale by animateFloatAsState(
-                                targetValue = if (selected) 1f else 0f,
-                                animationSpec = spring(
-                                    dampingRatio = Spring.DampingRatioMediumBouncy,
-                                    stiffness = Spring.StiffnessMediumLow
-                                ),
-                                label = "SelectedIndicatorScale"
+                            val pillColor by animateColorAsState(
+                                targetValue = if (selected) Color.White else Color.Transparent,
+                                label = "NavPillColor"
                             )
+                            val contentColor = if (selected) Color(0xFF0A0A1F) else Color(0xFF9A9BB8)
 
-                            Box(
+                            Row(
                                 modifier = Modifier
-                                    .size(48.dp)
+                                    .clip(CircleShape)
+                                    .background(pillColor)
                                     .clickable(
                                         interactionSource = remember { MutableInteractionSource() },
                                         indication = null
@@ -373,26 +371,25 @@ fun MainApp() {
                                                 restoreState = true
                                             }
                                         }
-                                    },
-                                contentAlignment = Alignment.Center
+                                    }
+                                    .padding(horizontal = if (selected) 16.dp else 14.dp, vertical = 12.dp)
+                                    .animateContentSize(),
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                if (scale > 0f) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(48.dp)
-                                            .scale(scale)
-                                            .clip(CircleShape)
-                                            .background(Color(0xFF26A69A))
-                                    )
-                                }
-
-                                CompositionLocalProvider(
-                                    LocalContentColor provides (if (selected) Color.White else if (isBlackThemeActive) Color(0xFFA5A5A5) else Color(0xFF6B7280))
-                                ) {
-                                    val iconScale = if (selected) 1.05f else 1f
-                                    Box(modifier = Modifier.scale(iconScale)) {
+                                CompositionLocalProvider(LocalContentColor provides contentColor) {
+                                    Box(modifier = Modifier.size(24.dp), contentAlignment = Alignment.Center) {
                                         screen.icon()
                                     }
+                                }
+                                if (selected) {
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = screen.label,
+                                        color = contentColor,
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        maxLines = 1
+                                    )
                                 }
                             }
                         }
@@ -552,7 +549,7 @@ fun MainApp() {
                                             color = Color.White.copy(alpha = 0.9f)
                                         ),
                                         tapTargetStyle = TapTargetStyle(
-                                            backgroundColor = Color(0xFF26A69A),
+                                            backgroundColor = Color(0xFF1E1E3D),
                                             tapTargetHighlightColor = Color.White,
                                             backgroundAlpha = 0.95f
                                         )
@@ -594,7 +591,7 @@ fun MainApp() {
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = if (com.samyak.iptvminepro.ui.theme.LocalIsBlackTheme.current) Color.Black else Color(0xFF26A69A),
+                        containerColor = MaterialTheme.colorScheme.background,
                         titleContentColor = Color.White,
                         actionIconContentColor = Color.White,
                         navigationIconContentColor = Color.White

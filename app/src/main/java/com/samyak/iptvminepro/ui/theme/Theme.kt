@@ -1,110 +1,99 @@
 package com.samyak.iptvminepro.ui.theme
 
 import android.app.Activity
-import android.os.Build
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
-import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.staticCompositionLocalOf
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
-val LocalIsBlackTheme = staticCompositionLocalOf { false }
+/**
+ * The redesigned app is dark-only, so this is always `true`. Screens that still branch on
+ * it (`if (isBlackTheme) darkStyle else lightStyle`) therefore always take their dark branch.
+ */
+val LocalIsBlackTheme = staticCompositionLocalOf { true }
 
-private val MaterialBlackColorScheme = darkColorScheme(
-    primary = ColorPrimary,
-    onPrimary = Color.Black,
-    primaryContainer = ColorPrimaryDark,
-    onPrimaryContainer = Color.White,
-    secondary = ColorAccent,
-    onSecondary = Color.Black,
-    tertiary = CoolBlue,
-    onTertiary = Color.White,
-    background = MaterialPureBlack,
-    onBackground = Color.White,
-    surface = MaterialPureBlack,
-    onSurface = MaterialBlackOnSurface,
-    surfaceVariant = MaterialBlackSurfaceVariant,
-    onSurfaceVariant = MaterialBlackOnSurfaceVariant,
-    outline = MaterialBlackOutline,
-    outlineVariant = MaterialBlackDivider
+// Default look: deep midnight navy with amber accents.
+private val MidnightColorScheme = darkColorScheme(
+    primary = Amber,
+    onPrimary = OnAmber,
+    primaryContainer = InkHigh,
+    onPrimaryContainer = TextHigh,
+    secondary = Violet,
+    onSecondary = TextHigh,
+    secondaryContainer = VioletDeep,
+    onSecondaryContainer = TextHigh,
+    tertiary = Teal,
+    onTertiary = OnAmber,
+    background = Midnight,
+    onBackground = TextHigh,
+    surface = Midnight,
+    onSurface = TextHigh,
+    surfaceVariant = Ink,
+    onSurfaceVariant = TextMuted,
+    surfaceContainerLowest = MidnightDeep,
+    surfaceContainerLow = Midnight,
+    surfaceContainer = Ink,
+    surfaceContainerHigh = InkHigh,
+    surfaceContainerHighest = InkHigh,
+    outline = InkStroke,
+    outlineVariant = InkStroke,
+    error = LiveRed
 )
 
-private val DarkColorScheme = darkColorScheme(
-    primary = ColorPrimary,
-    secondary = Secondary,
-    tertiary = CoolBlue,
-    background = BackgroundColor,
-    surface = TvCardBackground,
-    onPrimary = TextColor,
-    onSecondary = TextColor,
-    onTertiary = TextColor,
-    onBackground = TextColor,
-    onSurface = TextColor
-)
-
-private val LightColorScheme = lightColorScheme(
-    primary = ColorPrimary,
-    secondary = Secondary,
-    tertiary = CoolBlue,
-    background = Color.White,
-    surface = Color(0xFFF5F5F5),
-    onPrimary = Color.White,
-    onSecondary = Color.Black,
-    onTertiary = Color.White,
-    onBackground = Color.Black,
-    onSurface = Color.Black
+// "Material black" switch: same palette on a near-AMOLED background.
+private val AmoledColorScheme = darkColorScheme(
+    primary = Amber,
+    onPrimary = OnAmber,
+    primaryContainer = MaterialBlackSurfaceVariant,
+    onPrimaryContainer = TextHigh,
+    secondary = Violet,
+    onSecondary = TextHigh,
+    secondaryContainer = VioletDeep,
+    onSecondaryContainer = TextHigh,
+    tertiary = Teal,
+    onTertiary = OnAmber,
+    background = MidnightDeep,
+    onBackground = TextHigh,
+    surface = MidnightDeep,
+    onSurface = TextHigh,
+    surfaceVariant = Color0F0F1A,
+    onSurfaceVariant = TextMuted,
+    surfaceContainerLowest = MaterialPureBlack,
+    surfaceContainerLow = MidnightDeep,
+    surfaceContainer = Color0F0F1A,
+    surfaceContainerHigh = MaterialBlackSurfaceVariant,
+    surfaceContainerHighest = MaterialBlackSurfaceVariant,
+    outline = InkStroke,
+    outlineVariant = InkStroke,
+    error = LiveRed
 )
 
 @Composable
 fun IPTVMineProTheme(
-    blackTheme: Boolean = ThemePreferenceManager.isBlackTheme(LocalContext.current),
-    darkTheme: Boolean = false,
-    dynamicColor: Boolean = false,
+    blackTheme: Boolean = ThemePreferenceManager.isBlackTheme(androidx.compose.ui.platform.LocalContext.current),
     content: @Composable () -> Unit
 ) {
-    val colorScheme = when {
-        blackTheme -> MaterialBlackColorScheme
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        }
-        darkTheme -> DarkColorScheme
-        else -> LightColorScheme
-    }
+    val colorScheme = if (blackTheme) AmoledColorScheme else MidnightColorScheme
 
     val view = LocalView.current
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
-            if (blackTheme) {
-                window.statusBarColor = android.graphics.Color.BLACK
-                window.navigationBarColor = android.graphics.Color.BLACK
-                WindowCompat.getInsetsController(window, view).apply {
-                    isAppearanceLightStatusBars = false
-                    isAppearanceLightNavigationBars = false
-                }
-            } else {
-                window.statusBarColor = ColorPrimary.toArgb()
-                WindowCompat.getInsetsController(window, view).apply {
-                    isAppearanceLightStatusBars = false
-                }
+            window.statusBarColor = colorScheme.background.toArgb()
+            window.navigationBarColor = colorScheme.background.toArgb()
+            WindowCompat.getInsetsController(window, view).apply {
+                isAppearanceLightStatusBars = false
+                isAppearanceLightNavigationBars = false
             }
         }
     }
 
-    CompositionLocalProvider(
-        LocalIsBlackTheme provides blackTheme
-    ) {
+    CompositionLocalProvider(LocalIsBlackTheme provides true) {
         MaterialTheme(
             colorScheme = colorScheme,
             typography = Typography,
